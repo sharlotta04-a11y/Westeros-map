@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Інтерактивна мапа Вестеросу</title>
+  <title>Interactive Map of Westeros</title>
   
-  <!-- Стилі бібліотеки Leaflet -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
@@ -21,7 +21,7 @@
     
     #map { flex: 1; height: 100%; background: #0b0d11; }
     
-    /* Бічна панель інформації */
+    /* Information Sidebar */
     #sidebar {
       width: 380px;
       background: #161a23;
@@ -54,26 +54,32 @@
     .field { margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; }
     .field strong { color: #a0aec0; }
 
-    /* Стилі банера Cookies */
+    /* Cookie Banner Styles */
     #cookie-banner {
       position: fixed;
       bottom: 20px;
       left: 20px;
       right: 20px;
-      max-width: 520px;
+      max-width: 560px;
       background: #161a23;
       border: 1px solid #4a5568;
       border-radius: 8px;
-      padding: 18px 22px;
+      padding: 20px 24px;
       color: #e2e8f0;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
       z-index: 9999;
       display: none;
       font-size: 0.9rem;
       line-height: 1.5;
     }
-    #cookie-banner h4 { margin-bottom: 6px; color: #f7fafc; font-size: 1rem; }
-    .cookie-buttons { margin-top: 14px; display: flex; gap: 10px; }
+    #cookie-banner h4 { margin-bottom: 8px; color: #f7fafc; font-size: 1.05rem; }
+    
+    .cookie-buttons { 
+      margin-top: 16px; 
+      display: flex; 
+      flex-wrap: wrap;
+      gap: 10px; 
+    }
     .btn-cookie {
       padding: 8px 16px;
       border: none;
@@ -87,37 +93,89 @@
     .btn-accept:hover { background: #2b6cb0; }
     .btn-decline { background: #2d3748; color: #cbd5e0; }
     .btn-decline:hover { background: #4a5568; }
+    .btn-customize { 
+      background: transparent; 
+      color: #90cdf4; 
+      border: 1px solid #4a5568; 
+    }
+    .btn-customize:hover { background: #2d3748; }
+
+    /* Cookie Preferences Panel */
+    #cookie-preferences {
+      display: none;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #2d3748;
+    }
+    .cookie-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      background: #1e2430;
+      padding: 10px 12px;
+      border-radius: 6px;
+    }
+    .cookie-option-info strong { display: block; color: #f7fafc; font-size: 0.9rem; }
+    .cookie-option-info span { font-size: 0.8rem; color: #a0aec0; }
+    .cookie-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #3182ce;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Мапа -->
+  <!-- Map Container -->
   <div id="map"></div>
 
-  <!-- Інформаційний сайдбар -->
+  <!-- Information Sidebar -->
   <div id="sidebar">
     <div id="content">
-      <span class="badge">Локація не обрана</span>
-      <h2>Карта Вестеросу</h2>
-      <p class="motto">«Зима близько...»</p>
-      <p class="field">Клікніть по будь-якому замку або місту на мапі, щоб переглянути деталі про дім, девіз та історію регіону.</p>
+      <span class="badge">No Location Selected</span>
+      <h2>Map of Westeros</h2>
+      <p class="motto">"Winter is Coming..."</p>
+      <p class="field">Click on any castle, city, or landmark on the map to explore details about the ruling house, motto, and regional lore.</p>
     </div>
   </div>
 
-  <!-- Вікно запиту на Cookies -->
+  <!-- Cookie Consent Banner -->
   <div id="cookie-banner">
-    <h4>Налаштування файлів Cookie</h4>
-    <p>Цей сайт використовує файли cookie та Google Analytics для аналізу відвідуваності та покращення роботи мапи Вестеросу.</p>
-    <div class="cookie-buttons">
-      <button class="btn-cookie btn-accept" onclick="acceptCookies()">Прийняти</button>
-      <button class="btn-cookie btn-decline" onclick="declineCookies()">Відхилити</button>
+    <h4>Cookie Preferences</h4>
+    <p>We use cookies and Google Analytics to analyze traffic and enhance your experience exploring the Map of Westeros.</p>
+    
+    <!-- Expandable Customization Section -->
+    <div id="cookie-preferences">
+      <div class="cookie-option">
+        <div class="cookie-option-info">
+          <strong>Strictly Necessary Cookies</strong>
+          <span>Required for core map functionality and saving your privacy choices.</span>
+        </div>
+        <input type="checkbox" checked disabled>
+      </div>
+      <div class="cookie-option">
+        <div class="cookie-option-info">
+          <strong>Analytics Cookies (Google Analytics)</strong>
+          <span>Helps us understand how visitors interact with the map.</span>
+        </div>
+        <input type="checkbox" id="analytics-toggle" checked>
+      </div>
+      <button class="btn-cookie btn-accept" onclick="saveCustomCookies()">Save Preferences</button>
+    </div>
+
+    <div class="cookie-buttons" id="main-cookie-buttons">
+      <button class="btn-cookie btn-accept" onclick="acceptAllCookies()">Accept All</button>
+      <button class="btn-cookie btn-decline" onclick="declineAllCookies()">Decline All</button>
+      <button class="btn-cookie btn-customize" onclick="toggleCustomize()">Customize</button>
     </div>
   </div>
 
-  <!-- Скрипт мапи Leaflet -->
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 1. НАЛАШТУВАННЯ GOOGLE ANALYTICS (Вставте свій ID замість G-XXXXXXXXXX)
+    // 1. GOOGLE ANALYTICS CONFIGURATION (Replace with your actual Measurement ID)
     const GA_ID = 'G-EQHD003WSX';
 
     function loadGoogleAnalytics() {
@@ -135,14 +193,37 @@
       gtag('config', GA_ID);
     }
 
-    function acceptCookies() {
+    // Cookie Banner Controls
+    function acceptAllCookies() {
       localStorage.setItem('cookie_consent', 'accepted');
       document.getElementById('cookie-banner').style.display = 'none';
       loadGoogleAnalytics();
     }
 
-    function declineCookies() {
+    function declineAllCookies() {
       localStorage.setItem('cookie_consent', 'declined');
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+
+    function toggleCustomize() {
+      const prefs = document.getElementById('cookie-preferences');
+      const mainBtns = document.getElementById('main-cookie-buttons');
+      if (prefs.style.display === 'block') {
+        prefs.style.display = 'none';
+      } else {
+        prefs.style.display = 'block';
+        mainBtns.style.display = 'none';
+      }
+    }
+
+    function saveCustomCookies() {
+      const analyticsAllowed = document.getElementById('analytics-toggle').checked;
+      if (analyticsAllowed) {
+        localStorage.setItem('cookie_consent', 'accepted');
+        loadGoogleAnalytics();
+      } else {
+        localStorage.setItem('cookie_consent', 'declined');
+      }
       document.getElementById('cookie-banner').style.display = 'none';
     }
 
@@ -155,7 +236,7 @@
       }
     });
 
-    // 2. НАЛАШТУВАННЯ МАПИ ВЕСТЕРОСУ
+    // 2. WESTEROS MAP CONFIGURATION
     const mapWidth = 2400;
     const mapHeight = 3500;
 
@@ -168,34 +249,33 @@
 
     const bounds = [[0, 0], [mapHeight, mapWidth]];
     
-    // Поки не завантажено власний файл map.jpg, використовується тимчасовий фон
     L.imageOverlay('6597251005_41ffae8dd0_o.jpg', bounds).addTo(map);
     map.fitBounds(bounds);
 
     const locations = [
       {
-        name: "Winterfel",
-        house: "Stark",
-        region: "North",
+        name: "Winterfell",
+        house: "House Stark",
+        region: "The North",
         motto: "Winter is Coming",
         coords: [2600, 1100],
-        desc: "An ancient stone fortress, the stronghold of the Kings of the North and the ancestral nest of the Starks."
+        desc: "The ancient ancestral castle of House Stark, seat of the Kings in the North and Wardens of the North."
       },
       {
-        name: "Королівська Гавань",
-        house: "Корона / Баратеони",
-        region: "Королівські Землі",
-        motto: "Наш гнів спалює",
+        name: "King's Landing",
+        house: "The Crown / House Baratheon",
+        region: "The Crownlands",
+        motto: "Ours is the Fury",
         coords: [1400, 1600],
-        desc: "Столиця Семи Королівств, де розташований Червоний замок та Залізний трон."
+        desc: "The capital of the Seven Kingdoms, home to the Red Keep and the Iron Throne."
       },
       {
         name: "Casterly Rock",
-        house: "Lannister",
-        region: "Westerlands",
+        house: "House Lannister",
+        region: "The Westerlands",
         motto: "Hear Me Roar!",
         coords: [1550, 650],
-        desc: "An impregnable fortress carved right into a giant rock above the Western Sea."
+        desc: "An impenetrable fortress carved directly into a colossal stone mountain overlooking the Sunset Sea."
       }
     ];
 
@@ -205,11 +285,21 @@
         document.getElementById('content').innerHTML = `
           <span class="badge">${loc.region}</span>
           <h2>${loc.name}</h2>
-          <p class="motto">«${loc.motto}»</p>
-          <div class="field"><strong>Правлячий дім:</strong> ${loc.house}</div>
-          <div class="field"><strong>Опис:</strong> ${loc.desc}</div>
+          <p class="motto">"${loc.motto}"</p>
+          <div class="field"><strong>Ruling House:</strong> ${loc.house}</div>
+          <div class="field"><strong>Description:</strong> ${loc.desc}</div>
         `;
       });
+    });
+
+    // Coordinate helper on left click (remove when finished placing markers)
+    map.on('click', function(e) {
+      const y = Math.round(e.latlng.lat);
+      const x = Math.round(e.latlng.lng);
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(`Coordinates: <b>[${y}, ${x}]</b>`)
+        .openOn(map);
     });
   </script>
 </body>
