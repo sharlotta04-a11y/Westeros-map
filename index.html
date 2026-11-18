@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Інтерактивна мапа Вестеросу</title>
+  
+  <!-- Стилі бібліотеки Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      display: flex; 
+      height: 100vh; 
+      background: #0f1115; 
+      color: #e2e8f0; 
+      overflow: hidden; 
+    }
+    
+    #map { flex: 1; height: 100%; background: #0b0d11; }
+    
+    /* Бічна панель інформації */
+    #sidebar {
+      width: 380px;
+      background: #161a23;
+      border-left: 1px solid #2d3748;
+      padding: 24px;
+      overflow-y: auto;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.4);
+    }
+    
+    .badge {
+      display: inline-block;
+      background: #2b3548;
+      color: #90cdf4;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    h2 { font-size: 1.5rem; color: #f7fafc; margin-bottom: 8px; }
+    .motto { 
+      font-style: italic; 
+      color: #cbd5e0; 
+      margin-bottom: 16px; 
+      border-left: 3px solid #e2e8f0; 
+      padding-left: 8px; 
+    }
+    .field { margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; }
+    .field strong { color: #a0aec0; }
+
+    /* Стилі банера Cookies */
+    #cookie-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      max-width: 520px;
+      background: #161a23;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      padding: 18px 22px;
+      color: #e2e8f0;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      display: none;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    #cookie-banner h4 { margin-bottom: 6px; color: #f7fafc; font-size: 1rem; }
+    .cookie-buttons { margin-top: 14px; display: flex; gap: 10px; }
+    .btn-cookie {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: 0.2s;
+    }
+    .btn-accept { background: #3182ce; color: #fff; }
+    .btn-accept:hover { background: #2b6cb0; }
+    .btn-decline { background: #2d3748; color: #cbd5e0; }
+    .btn-decline:hover { background: #4a5568; }
+  </style>
+</head>
+<body>
+
+  <!-- Мапа -->
+  <div id="map"></div>
+
+  <!-- Інформаційний сайдбар -->
+  <div id="sidebar">
+    <div id="content">
+      <span class="badge">Локація не обрана</span>
+      <h2>Карта Вестеросу</h2>
+      <p class="motto">«Зима близько...»</p>
+      <p class="field">Клікніть по будь-якому замку або місту на мапі, щоб переглянути деталі про дім, девіз та історію регіону.</p>
+    </div>
+  </div>
+
+  <!-- Вікно запиту на Cookies -->
+  <div id="cookie-banner">
+    <h4>Налаштування файлів Cookie</h4>
+    <p>Цей сайт використовує файли cookie та Google Analytics для аналізу відвідуваності та покращення роботи мапи Вестеросу.</p>
+    <div class="cookie-buttons">
+      <button class="btn-cookie btn-accept" onclick="acceptCookies()">Прийняти</button>
+      <button class="btn-cookie btn-decline" onclick="declineCookies()">Відхилити</button>
+    </div>
+  </div>
+
+  <!-- Скрипт мапи Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // 1. НАЛАШТУВАННЯ GOOGLE ANALYTICS (Вставте свій ID замість G-XXXXXXXXXX)
+    const GA_ID = 'G-EQHD003WSX';
+
+    function loadGoogleAnalytics() {
+      if (document.getElementById('ga-script')) return;
+      
+      const script = document.createElement('script');
+      script.id = 'ga-script';
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+      document.head.appendChild(script);
+
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', GA_ID);
+    }
+
+    function acceptCookies() {
+      localStorage.setItem('cookie_consent', 'accepted');
+      document.getElementById('cookie-banner').style.display = 'none';
+      loadGoogleAnalytics();
+    }
+
+    function declineCookies() {
+      localStorage.setItem('cookie_consent', 'declined');
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const consent = localStorage.getItem('cookie_consent');
+      if (consent === 'accepted') {
+        loadGoogleAnalytics();
+      } else if (!consent) {
+        document.getElementById('cookie-banner').style.display = 'block';
+      }
+    });
+
+    // 2. НАЛАШТУВАННЯ МАПИ ВЕСТЕРОСУ
+    const mapWidth = 2400;
+    const mapHeight = 3500;
+
+    const map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -2,
+      maxZoom: 1,
+      zoomSnap: 0.25
+    });
+
+    const bounds = [[0, 0], [mapHeight, mapWidth]];
+    
+    // Поки не завантажено власний файл map.jpg, використовується тимчасовий фон
+    L.imageOverlay('map.jpg', bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    const locations = [
+      {
+        name: "Вінтерфелл",
+        house: "Дім Старків",
+        region: "Північ",
+        motto: "Зима близько",
+        coords: [2600, 1100],
+        desc: "Стародавня кам'яна твердиня, оплот Королів Півночі та родове гніздо Старків."
+      },
+      {
+        name: "Королівська Гавань",
+        house: "Корона / Баратеони",
+        region: "Королівські Землі",
+        motto: "Наш гнів спалює",
+        coords: [1400, 1600],
+        desc: "Столиця Семи Королівств, де розташований Червоний замок та Залізний трон."
+      },
+      {
+        name: "Скеля Кастерлі",
+        house: "Дім Ланістерів",
+        region: "Західні Землі",
+        motto: "Почуй мій рев!",
+        coords: [1550, 650],
+        desc: "Неприступна фортеця, висічена прямо в гігантській скелі над Західним морем."
+      }
+    ];
+
+    locations.forEach(loc => {
+      const marker = L.marker(loc.coords).addTo(map);
+      marker.on('click', () => {
+        document.getElementById('content').innerHTML = `
+          <span class="badge">${loc.region}</span>
+          <h2>${loc.name}</h2>
+          <p class="motto">«${loc.motto}»</p>
+          <div class="field"><strong>Правлячий дім:</strong> ${loc.house}</div>
+          <div class="field"><strong>Опис:</strong> ${loc.desc}</div>
+        `;
+      });
+    });
+  </script>
+</body>
+</html>
